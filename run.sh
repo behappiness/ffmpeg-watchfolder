@@ -1,26 +1,28 @@
 #!/bin/bash
 set -e
 
-# Environment variables with defaults
-EXTENSION=${EXTENSION:-mp4}
-ENCODER=${ENCODER:-libx264}
-PRESET=${PRESET:-veryfast}
-CRF=${CRF:-28}
-THREADS=${THREADS:-2}
-ANALYZEDURATION=${ANALYZEDURATION:-100000000}
-PROBESIZE=${PROBESIZE:-100000000}
-NAME=${NAME:-${FPS}fps}
-FPS=${FPS:-50}
-PASS=${PASS:-2}
-# EBU R128 audio normalization settings
-AUDIO_NORMALIZATION=${AUDIO_NORMALIZATION:-loudnorm=I=-23:LRA=7:TP=-2.0}
-DISABLE_AUDIO=${DISABLE_AUDIO:-false}
+## Environment variables with defaults
+EXTENSION=${EXTENSION:-mp4} # REQUIRED; mp4, mov, m4v, etc.
+ENCODER=${ENCODER:-libx264} # libx265, libx264, hevc_videotoolbox, etc.
+PRESET=${PRESET:-veryfast} # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+CRF=${CRF:-28} # 0-51
+THREADS=${THREADS:-2} # 1-64
+ANALYZEDURATION=${ANALYZEDURATION:-100000000} # 0-10000000000
+PROBESIZE=${PROBESIZE:-100000000} # 0-10000000000
+FPS=${FPS:-50} # 24, 25, 30, 50, 60
+NAME=${NAME:-${FPS}fps} # A name suffix
+AUDIO_NORMALIZATION=${AUDIO_NORMALIZATION:-loudnorm=I=-23:LRA=7:TP=-2.0} # Audio normalization; EBU R128: loudnorm=I=-23:LRA=7:TP=-2.0
+DISABLE_AUDIO=${DISABLE_AUDIO:-true} # Disable audio
+DELETE_ORIGINAL=${DELETE_ORIGINAL:-false} # Delete original file after processing
+# Custom FFmpeg arguments (optional) - https://ffmpeg.org/ffmpeg.html#Main-options
+FFMPEG_ARGS=${FFMPEG_ARGS:-""}
+
 
 # Directories
-WATCH=${WATCH:-/watch}
-STORAGE=${STORAGE:-/storage}
-OUTPUT=${OUTPUT:-/output}
-TEMP=${TEMP:-/temp}
+WATCH=${WATCH:-/watch} # REQUIRED; Watch directory
+STORAGE=${STORAGE:-/storage} # REQUIRED if not using DELETE_ORIGINAL; Storage directory
+OUTPUT=${OUTPUT:-/output} # REQUIRED; Output directory
+TEMP=${TEMP:-/temp} # Temporary directory
 
 # Check if a directory exists and is writable
 check_directory() {
@@ -93,25 +95,37 @@ process() {
     trap 'echo "Interrupted, cleaning up..."; rm -f "$temp_output" 2>/dev/null; exit' INT
 
     # Run ffmpeg with error handling
-    if ! ffmpeg \
-        -hide_banner \
-        -y \
-        -loglevel warning \
-        -analyzeduration "$ANALYZEDURATION" \
-        -probesize "$PROBESIZE" \
-        -i "$storage" \
-        -c:v "$ENCODER" \
-        -preset "$PRESET" \
-        -crf "$CRF" \
-        -threads "$THREADS" \
-        -r "$FPS" \
-        ${DISABLE_AUDIO,,} = "true" && echo "-an" || echo "-af $AUDIO_NORMALIZATION"} \
-        -pass "$PASS" \
-        "$temp_output"; then
-        
-        echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg processing failed. Cleaning up..."
-        rm -f "$temp_output" 2>/dev/null
-        return 1
+    if [ -n "$FFMPEG_ARGS" ]; then
+        if ! ffmpeg \
+            -hide_banner \
+            -y \
+            -loglevel warning \
+            -i "$storage" \
+            $FFMPEG_ARGS \
+            "$temp_output"; then
+            echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg processing failed. Cleaning up..."
+            rm -f "$temp_output" 2>/dev/null
+            return 1
+        fi
+    else
+        if ! ffmpeg \
+            -hide_banner \
+            -y \
+            -loglevel warning \
+            -i "$storage" \
+            -analyzeduration $ANALYZEDURATION \
+            -probesize $PROBESIZE \
+            -c:v $ENCODER \
+            -preset $PRESET \
+            -crf $CRF \
+            -threads $THREADS \
+            -r $FPS \
+            $([ "$(echo "$DISABLE_AUDIO" | tr '[:upper:]' '[:lower:]')" = "true" ] && echo "-an" || echo "-af $AUDIO_NORMALIZATION") \
+            "$temp_output"; then
+            echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg processing failed. Cleaning up..."
+            rm -f "$temp_output" 2>/dev/null
+            return 1
+        fi
     fi
 
     echo "$(date +"%Y-%m-%d-%T") Finished encoding $temp_output"
@@ -122,6 +136,14 @@ process() {
         echo "$(date +"%Y-%m-%d-%T") ERROR: Failed to move processed file to destination. Cleaning up..."
         rm -f "$temp_output" 2>/dev/null
         return 1
+    fi
+
+    # Delete original file if DELETE_ORIGINAL is true
+    if [ "$(echo "$DELETE_ORIGINAL" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+        echo "$(date +"%Y-%m-%d-%T") Deleting original file: $storage"
+        if ! rm "$storage"; then
+            echo "$(date +"%Y-%m-%d-%T") WARNING: Failed to delete original file: $storage"
+        fi
     fi
 }
 

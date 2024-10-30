@@ -11,11 +11,9 @@ services:
       EXTENSION: mp4
       FPS: 50
       THREADS: 2
-      ANALYZEDURATION: 100000000
-      PROBESIZE: 100000000
-      AUDIO_NORMALIZATION: "loudnorm=I=-23:LRA=7:TP=-2.0"
-      PASS: 1
-      NAME: encoded
+      DISABLE_AUDIO: "false"
+      NAME: "${FPS}fps"
+      DELETE_ORIGINAL: "false"
     volumes:
       - '/watch:/watch'
       - '/storage:/storage'
