@@ -57,7 +57,7 @@ You can set these options either through environment variables or in your `docke
 services:
   ffmpeg-watch:
     container_name: ffmpeg-watch
-    image: ffmpeg-watch
+    image: ghcr.io/behappiness/ffmpeg-watchfolder:latest
     restart: always
     environment:
       ENCODER: libx264

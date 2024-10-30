@@ -2,7 +2,7 @@ version: '3.4'
 services:
   ffmpeg-watch:
     container_name: ffmpeg-watch
-    build: .
+    image: ghcr.io/behappiness/ffmpeg-watchfolder:latest
     restart: always
     environment:
       ENCODER: libx264
