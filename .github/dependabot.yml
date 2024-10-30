@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # Raise pull requests against the "main" branch
+    target-branch: "main"
+    # Labels on pull requests for version updates
+    labels:
+      - "docker"
+      - "dependencies"
+    # Set reviewers
+    reviewers:
+      - "behappiness"
+
+  # Also keep GitHub Actions up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "github-actions"
+      - "dependencies" 
