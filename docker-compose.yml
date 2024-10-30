@@ -1,0 +1,23 @@
+version: '3.4'
+services:
+  ffmpeg-watch:
+    container_name: ffmpeg-watch
+    build: .
+    restart: always
+    environment:
+      ENCODER: libx264
+      PRESET: veryfast
+      CRF: 28
+      EXTENSION: mp4
+      FPS: 50
+      THREADS: 2
+      ANALYZEDURATION: 100000000
+      PROBESIZE: 100000000
+      AUDIO_NORMALIZATION: "loudnorm=I=-23:LRA=7:TP=-2.0"
+      PASS: 1
+      NAME: encoded
+    volumes:
+      - '/watch:/watch'
+      - '/storage:/storage'
+      - '/output:/output'
+      - '/temp:/temp'
