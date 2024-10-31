@@ -10,12 +10,12 @@ services:
       CRF: 28
       EXTENSION: mp4
       FPS: 50
-      THREADS: 2
+      THREADS: 4
       DISABLE_AUDIO: "false"
-      NAME: "${FPS}fps"
+      NAME: "50fps"
       DELETE_ORIGINAL: "false"
     volumes:
-      - '/watch:/watch'
-      - '/storage:/storage'
-      - '/output:/output'
-      - '/temp:/temp'
+      - './watch:/watch'
+      - './storage:/storage'
+      - './output:/output'
+      - './temp:/temp'

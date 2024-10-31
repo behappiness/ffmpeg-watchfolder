@@ -10,7 +10,7 @@ THREADS=${THREADS:-2} # 1-64
 ANALYZEDURATION=${ANALYZEDURATION:-100000000} # 0-10000000000
 PROBESIZE=${PROBESIZE:-100000000} # 0-10000000000
 FPS=${FPS:-50} # 24, 25, 30, 50, 60
-NAME=${NAME:-${FPS}fps} # A name suffix
+NAME=${NAME:-50fps} # A name suffix
 AUDIO_NORMALIZATION=${AUDIO_NORMALIZATION:-loudnorm=I=-23:LRA=7:TP=-2.0} # Audio normalization; EBU R128: loudnorm=I=-23:LRA=7:TP=-2.0
 DISABLE_AUDIO=${DISABLE_AUDIO:-true} # Disable audio
 DELETE_ORIGINAL=${DELETE_ORIGINAL:-false} # Delete original file after processing
@@ -66,16 +66,40 @@ process() {
     local file=$1
     local filepath=${file:2}
     local input="$WATCH"/"$filepath"
+    local initial_size
+    local final_size
     
-    # Add file completion check
+    # More robust file completion check
     echo "$(date +"%Y-%m-%d-%T") Checking if $input is completely copied..."
-    local initial_size=$(stat -f %z "$input" 2>/dev/null || stat -c %s "$input")
-    sleep 5  # Wait 5 seconds
-    local final_size=$(stat -f %z "$input" 2>/dev/null || stat -c %s "$input")
+    if [ ! -f "$input" ]; then
+        echo "$(date +"%Y-%m-%d-%T") File $input no longer exists. Skipping."
+        return 0
+    fi
     
+    # Try both stat syntaxes with error handling
+    initial_size=$(stat -f %z "$input" 2>/dev/null || stat -c %s "$input" 2>/dev/null || echo "error")
+    if [ "$initial_size" = "error" ]; then
+        echo "$(date +"%Y-%m-%d-%T") ERROR: Could not read file size for $input"
+        return 1
+    fi
+    
+    sleep 5  # Wait 5 seconds
+    
+    if [ ! -f "$input" ]; then
+        echo "$(date +"%Y-%m-%d-%T") File $input disappeared during size check. Skipping."
+        return 0
+    fi
+    
+    final_size=$(stat -f %z "$input" 2>/dev/null || stat -c %s "$input" 2>/dev/null || echo "error")
+    if [ "$final_size" = "error" ]; then
+        echo "$(date +"%Y-%m-%d-%T") ERROR: Could not read final file size for $input"
+        return 1
+    fi
+
+    # Add size comparison check
     if [ "$initial_size" != "$final_size" ]; then
-        echo "$(date +"%Y-%m-%d-%T") File $input is still being copied. Skipping for now."
-        return 0  # Return 0 to allow the file to be processed in the next iteration
+        echo "$(date +"%Y-%m-%d-%T") File $input is still being copied. Skipping."
+        return 0
     fi
 
     local storage="$STORAGE"/"$filepath"

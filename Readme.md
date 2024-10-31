@@ -40,7 +40,7 @@ A Docker container designed to watch a directory and automatically encode video 
 
 ### Output Settings
 
-- **NAME**: Output filename suffix (default: `{FPS}fps`)
+- **NAME**: Output filename suffix (default: `50fps`)
 - **DELETE_ORIGINAL**: Option to delete original file after processing (default: `false`)
 
 ### Advanced Configuration
