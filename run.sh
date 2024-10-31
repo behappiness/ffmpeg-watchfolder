@@ -12,7 +12,7 @@ PROBESIZE=${PROBESIZE:-100000000} # 0-10000000000
 FPS=${FPS:-50} # 24, 25, 30, 50, 60
 NAME=${NAME:-50fps} # A name suffix
 AUDIO_NORMALIZATION=${AUDIO_NORMALIZATION:-loudnorm=I=-23:LRA=7:TP=-2.0} # Audio normalization; EBU R128: loudnorm=I=-23:LRA=7:TP=-2.0
-DISABLE_AUDIO=${DISABLE_AUDIO:-true} # Disable audio
+DISABLE_AUDIO=${DISABLE_AUDIO:-false} # Disable audio
 DELETE_ORIGINAL=${DELETE_ORIGINAL:-false} # Delete original file after processing
 # Custom FFmpeg arguments (optional) - https://ffmpeg.org/ffmpeg.html#Main-options
 FFMPEG_ARGS=${FFMPEG_ARGS:-""}
@@ -106,9 +106,9 @@ process() {
     local temp_output="$TEMP"/"${filepath%.*}"_"${NAME}"_"$(date +%Y%m%d_%H%M%S)"."$EXTENSION"
     local destination="$OUTPUT"/"${filepath%.*}"_"${NAME}"_"$(date +%Y%m%d_%H%M%S)"."$EXTENSION"
 
-    # Move input file to storage (simplified)
+    # Move input file to storage without preserving permissions
     echo "$(date +"%Y-%m-%d-%T") Moving $input to $storage"
-    if ! mv "$input" "$storage"; then
+    if ! cp --no-preserve=mode,ownership "$input" "$storage" && rm "$input"; then
         echo "$(date +"%Y-%m-%d-%T") ERROR: Failed to move input file to storage. Skipping processing."
         return 1
     fi
@@ -154,9 +154,9 @@ process() {
 
     echo "$(date +"%Y-%m-%d-%T") Finished encoding $temp_output"
 
-    # Move processed file to destination
+    # Move processed file to destination without preserving permissions
     echo "$(date +"%Y-%m-%d-%T") Moving $temp_output to $destination"
-    if ! mv "$temp_output" "$destination"; then
+    if ! cp --no-preserve=mode,ownership "$temp_output" "$destination" && rm "$temp_output"; then
         echo "$(date +"%Y-%m-%d-%T") ERROR: Failed to move processed file to destination. Cleaning up..."
         rm -f "$temp_output" 2>/dev/null
         return 1
