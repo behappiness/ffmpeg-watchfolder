@@ -67,7 +67,7 @@ services:
       FPS: 50
       THREADS: 2
       DISABLE_AUDIO: "false"
-      NAME: "${FPS}fps"
+      NAME: "50fps"
       DELETE_ORIGINAL: "false"
     volumes:
       - 'PATH_TO_WATCH:/watch'
