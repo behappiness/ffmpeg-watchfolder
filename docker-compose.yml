@@ -5,12 +5,8 @@ services:
     image: ghcr.io/behappiness/ffmpeg-watchfolder:latest
     restart: always
     environment:
-      ENCODER: libx264
-      PRESET: veryfast
-      CRF: 28
-      EXTENSION: mp4
       FPS: 50
-      THREADS: 4
+      THREADS: 8
       DISABLE_AUDIO: "false"
       NAME: "50fps"
       DELETE_ORIGINAL: "false"

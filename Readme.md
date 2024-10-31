@@ -16,27 +16,24 @@ A Docker container designed to watch a directory and automatically encode video 
 - **EXTENSION**: Output file extension (default: `mp4`)
 - **ENCODER**: Video encoder to use (default: `libx264`)
   - Options include: `libx265`, `hevc_videotoolbox`, etc.
-- **PRESET**: Encoding speed preset (default: `veryfast`)
+- **PRESET**: Encoding speed preset (default: `fast`)
   - Options: `ultrafast`, `superfast`, `veryfast`, `faster`, `fast`, `medium`, `slow`, `slower`, `veryslow`
-  - Note: Slower presets provide better quality but take longer to encode
-- **CRF**: Constant Rate Factor (default: `28`)
-  - Range: `0-51`, where lower values mean better quality
-- **FPS**: Target frames per second (default: `50`)
-  - Common values: `24`, `25`, `30`, `50`, `60`
-
-### Performance Settings
-
-- **THREADS**: Number of CPU threads to use (default: `2`)
-  - Range: `1-64`
+- **BITRATE**: Video bitrate (default: `10000k`)
+- **THREADS**: Number of CPU threads to use (default: `8`)
+- **TUNE**: Encoder tuning (default: `film`)
+  - Options: `film`, `animation`, `grain`, `stillimage`, `fastdecode`, `zerolatency`
 - **ANALYZEDURATION**: Duration in microseconds FFmpeg spends analyzing input (default: `100000000`)
-  - Range: `0-10000000000`
 - **PROBESIZE**: Size in bytes of data to analyze for input format detection (default: `100000000`)
-  - Range: `0-10000000000`
+- **FPS**: Target frames per second (default: `50`)
+  - Options: `24`, `25`, `30`, `50`, `60`, `30/1001`
 
 ### Audio Settings
 
 - **AUDIO_NORMALIZATION**: Audio normalization settings (default EBU R128: `loudnorm=I=-23:LRA=7:TP=-2.0`)
 - **DISABLE_AUDIO**: Option to disable audio processing (default: `false`)
+- **AUDIO_CODEC**: Audio codec (default: `aac`)
+- **AUDIO_BITRATE**: Audio bitrate (default: `320k`)
+- **AUDIO_SAMPLE_RATE**: Audio sample rate (default: `48000`)
 
 ### Output Settings
 
@@ -60,12 +57,8 @@ services:
     image: ghcr.io/behappiness/ffmpeg-watchfolder:latest
     restart: always
     environment:
-      ENCODER: libx264
-      PRESET: veryfast
-      CRF: 28
-      EXTENSION: mp4
       FPS: 50
-      THREADS: 2
+      THREADS: 8
       DISABLE_AUDIO: "false"
       NAME: "50fps"
       DELETE_ORIGINAL: "false"
@@ -75,4 +68,5 @@ services:
       - 'PATH_TO_STORAGE:/storage'
       - 'PATH_TO_TEMP:/temp'
 ```
+
 Replace `PATH_TO_*` with your actual directory paths.

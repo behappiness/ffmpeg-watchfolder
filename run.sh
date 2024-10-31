@@ -4,25 +4,32 @@ set -e
 ## Environment variables with defaults
 EXTENSION=${EXTENSION:-mp4} # REQUIRED; mp4, mov, m4v, etc.
 ENCODER=${ENCODER:-libx264} # libx265, libx264, hevc_videotoolbox, etc.
-PRESET=${PRESET:-veryfast} # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
-CRF=${CRF:-28} # 0-51
-THREADS=${THREADS:-2} # 1-64
+PRESET=${PRESET:-fast} # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+BITRATE=${BITRATE:-10000k} # 1000-50000k
+THREADS=${THREADS:-8} # 1-64
+TUNE=${TUNE:-film} # film, animation, grain, stillimage, fastdecode, zerolatency
 ANALYZEDURATION=${ANALYZEDURATION:-100000000} # 0-10000000000
 PROBESIZE=${PROBESIZE:-100000000} # 0-10000000000
 FPS=${FPS:-50} # 24, 25, 30, 50, 60
 NAME=${NAME:-50fps} # A name suffix
-AUDIO_NORMALIZATION=${AUDIO_NORMALIZATION:-loudnorm=I=-23:LRA=7:TP=-2.0} # Audio normalization; EBU R128: loudnorm=I=-23:LRA=7:TP=-2.0
-DISABLE_AUDIO=${DISABLE_AUDIO:-false} # Disable audio
 DELETE_ORIGINAL=${DELETE_ORIGINAL:-false} # Delete original file after processing
+
+# Audio
+DISABLE_AUDIO=${DISABLE_AUDIO:-false} # Disable audio
+AUDIO_NORMALIZATION=${AUDIO_NORMALIZATION:-loudnorm=I=-23:LRA=7:TP=-2.0} # Audio normalization; EBU R128: loudnorm=I=-23:LRA=7:TP=-2.0
+AUDIO_CODEC=${AUDIO_CODEC:-aac} # Audio codec; aac, ac3, flac, opus
+AUDIO_BITRATE=${AUDIO_BITRATE:-320k} # Audio bitrate; 64k, 128k, 192k, etc.
+AUDIO_SAMPLE_RATE=${AUDIO_SAMPLE_RATE:-48000} # Audio sample rate; 44100, 48000, 96000, etc.
+
 # Custom FFmpeg arguments (optional) - https://ffmpeg.org/ffmpeg.html#Main-options
 FFMPEG_ARGS=${FFMPEG_ARGS:-""}
 
 
 # Directories
-WATCH=${WATCH:-/watch} # REQUIRED; Watch directory
-STORAGE=${STORAGE:-/storage} # REQUIRED if not using DELETE_ORIGINAL; Storage directory
-OUTPUT=${OUTPUT:-/output} # REQUIRED; Output directory
-TEMP=${TEMP:-/temp} # Temporary directory
+WATCH=${WATCH:-./watch} # REQUIRED; Watch directory
+STORAGE=${STORAGE:-./storage} # REQUIRED if not using DELETE_ORIGINAL; Storage directory
+OUTPUT=${OUTPUT:-./output} # REQUIRED; Output directory
+TEMP=${TEMP:-./temp} # Temporary directory
 
 # Check if a directory exists and is writable
 check_directory() {
@@ -120,6 +127,7 @@ process() {
 
     # Run ffmpeg with error handling
     if [ -n "$FFMPEG_ARGS" ]; then
+        # Single pass with custom arguments
         if ! ffmpeg \
             -hide_banner \
             -y \
@@ -127,11 +135,15 @@ process() {
             -i "$storage" \
             $FFMPEG_ARGS \
             "$temp_output"; then
-            echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg processing failed. Cleaning up..."
+            echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg processing with custom arguments failed. Cleaning up..."
             rm -f "$temp_output" 2>/dev/null
             return 1
         fi
     else
+        # Two-pass encoding
+        local passlogfile="$TEMP"/"${filepath%.*}"_"${NAME}"_"$(date +%Y%m%d_%H%M%S)_log"
+
+        # First pass
         if ! ffmpeg \
             -hide_banner \
             -y \
@@ -141,18 +153,48 @@ process() {
             -probesize $PROBESIZE \
             -c:v $ENCODER \
             -preset $PRESET \
-            -crf $CRF \
+            -tune $TUNE \
+            -b:v $BITRATE \
             -threads $THREADS \
-            -r $FPS \
-            $([ "$(echo "$DISABLE_AUDIO" | tr '[:upper:]' '[:lower:]')" = "true" ] && echo "-an" || echo "-af $AUDIO_NORMALIZATION") \
-            "$temp_output"; then
-            echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg processing failed. Cleaning up..."
+            -pass 1 \
+            -passlogfile "$passlogfile" \
+            -an \
+            -f null /dev/null; then
+            echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg first pass failed. Cleaning up..."
             rm -f "$temp_output" 2>/dev/null
+            rm -f "${passlogfile}"* 2>/dev/null
             return 1
         fi
-    fi
 
-    echo "$(date +"%Y-%m-%d-%T") Finished encoding $temp_output"
+        # Second pass
+        if ! ffmpeg \
+            -hide_banner \
+            -y \
+            -loglevel warning \
+            -i "$storage" \
+            -analyzeduration $ANALYZEDURATION \
+            -probesize $PROBESIZE \
+            -c:v $ENCODER \
+            -preset $PRESET \
+            -tune $TUNE \
+            -b:v $BITRATE \
+            -threads $THREADS \
+            -pass 2 \
+            -passlogfile "$passlogfile" \
+            -r $FPS \
+            $([ "$(echo "$DISABLE_AUDIO" | tr '[:upper:]' '[:lower:]')" = "true" ] && echo "-an" || echo "-c:a $AUDIO_CODEC -b:a $AUDIO_BITRATE -ar $AUDIO_SAMPLE_RATE -af $AUDIO_NORMALIZATION") \
+            "$temp_output"; then
+            echo "$(date +"%Y-%m-%d-%T") ERROR: FFmpeg second pass failed. Cleaning up..."
+            rm -f "$temp_output" 2>/dev/null
+            rm -f "${passlogfile}"* 2>/dev/null
+            return 1
+        fi
+
+        # Cleanup pass log files after successful encoding
+        rm -f "${passlogfile}"* 2>/dev/null
+
+        echo "$(date +"%Y-%m-%d-%T") Finished encoding $temp_output"
+    fi
 
     # Move processed file to destination without preserving permissions
     echo "$(date +"%Y-%m-%d-%T") Moving $temp_output to $destination"
