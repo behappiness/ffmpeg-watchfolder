@@ -26,10 +26,10 @@ FFMPEG_ARGS=${FFMPEG_ARGS:-""}
 
 
 # Directories
-WATCH=${WATCH:-./watch} # REQUIRED; Watch directory
-STORAGE=${STORAGE:-./storage} # REQUIRED if not using DELETE_ORIGINAL; Storage directory
-OUTPUT=${OUTPUT:-./output} # REQUIRED; Output directory
-TEMP=${TEMP:-./temp} # Temporary directory
+WATCH=${WATCH:-/watch} # REQUIRED; Watch directory
+STORAGE=${STORAGE:-/storage} # REQUIRED if not using DELETE_ORIGINAL; Storage directory
+OUTPUT=${OUTPUT:-/output} # REQUIRED; Output directory
+TEMP=${TEMP:-/temp} # Temporary directory
 
 # Check if a directory exists and is writable
 check_directory() {

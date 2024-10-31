@@ -52,8 +52,8 @@ You can set these options either through environment variables or in your `docke
 
 ```yaml
 services:
-  ffmpeg-watch:
-    container_name: ffmpeg-watch
+  ffmpeg-watchfolder:
+    container_name: ffmpeg-watchfolder
     image: ghcr.io/behappiness/ffmpeg-watchfolder:latest
     restart: always
     environment:
