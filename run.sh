@@ -108,7 +108,7 @@ process() {
 
     # Move input file to storage without preserving permissions
     echo "$(date +"%Y-%m-%d-%T") Moving $input to $storage"
-    if ! cp --no-preserve=mode,ownership "$input" "$storage" && rm "$input"; then
+    if ! mv "$input" "$storage"; then
         echo "$(date +"%Y-%m-%d-%T") ERROR: Failed to move input file to storage. Skipping processing."
         return 1
     fi
@@ -156,7 +156,7 @@ process() {
 
     # Move processed file to destination without preserving permissions
     echo "$(date +"%Y-%m-%d-%T") Moving $temp_output to $destination"
-    if ! cp --no-preserve=mode,ownership "$temp_output" "$destination" && rm "$temp_output"; then
+    if ! mv "$temp_output" "$destination"; then
         echo "$(date +"%Y-%m-%d-%T") ERROR: Failed to move processed file to destination. Cleaning up..."
         rm -f "$temp_output" 2>/dev/null
         return 1
