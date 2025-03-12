@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/ffmpeg:7.0.2
+FROM lscr.io/linuxserver/ffmpeg:7.1.1
 WORKDIR /usr/src/ffmpeg-watch
 VOLUME [ "/watch", "/output", "/storage", "/temp" ]
 COPY run.sh .
